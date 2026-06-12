@@ -37,6 +37,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey as WinitNamedKey};
 #[cfg(target_os = "linux")]
 use winit::platform::wayland::WindowAttributesExtWayland;
+use winit::window::Fullscreen::{self, Borderless};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 #[cfg(target_os = "macos")]
@@ -114,9 +115,10 @@ impl HeadedWindow {
     ) -> Rc<Self> {
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;
         let inner_size = servoshell_preferences.initial_window_size;
+        let kiosk_mode: bool = servoshell_preferences.kiosk_mode;
         let window_attr = winit::window::Window::default_attributes()
             .with_title(INITIAL_WINDOW_TITLE.to_string())
-            .with_decorations(!no_native_titlebar)
+            .with_decorations(!kiosk_mode)
             .with_transparent(no_native_titlebar)
             .with_inner_size(LogicalSize::new(inner_size.width, inner_size.height))
             .with_min_inner_size(LogicalSize::new(
@@ -126,10 +128,10 @@ impl HeadedWindow {
             // Must be invisible at startup; accesskit_winit setup needs to
             // happen before the window is shown for the first time.
             .with_visible(false);
-
+           
         // Set a name so it can be pinned to taskbars in Linux.
         #[cfg(target_os = "linux")]
-        let window_attr = window_attr.with_name("org.servo.Servo", "Servo");
+        let window_attr = window_attr.with_name("org.servo.Servo", "Servo").with_decorations(false);
 
         #[allow(deprecated)]
         let winit_window = event_loop
@@ -151,6 +153,8 @@ impl HeadedWindow {
             .current_monitor()
             .or_else(|| winit_window.available_monitors().nth(0))
             .expect("No monitor detected");
+
+       
 
         let (screen_size, screen_scale) = servoshell_preferences.screen_size_override.map_or_else(
             || (monitor.size(), winit_window.scale_factor()),
@@ -191,14 +195,20 @@ impl HeadedWindow {
             event_loop_proxy,
             rendering_context.clone(),
             initial_url,
+            servoshell_preferences.kiosk_mode,
+
         ));
+
+        if servoshell_preferences.kiosk_mode {
+            winit_window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(Some(monitor))));
+        }
 
         debug!("Created window {:?}", winit_window.id());
         Rc::new(HeadedWindow {
             gui,
             winit_window,
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
-            fullscreen: Cell::new(false),
+            fullscreen: Cell::new(true), //TODO
             inner_size: Cell::new(inner_size),
             screen_size,
             device_pixel_ratio_override: servoshell_preferences.device_pixel_ratio_override,

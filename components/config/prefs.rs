@@ -65,6 +65,7 @@ pub fn set(preferences: Preferences) {
         "layout.container-queries.enabled",
         preferences.layout_container_queries_enabled
     );
+    
     stylo_static_prefs::set_pref!(
         "layout.variable_fonts.enabled",
         preferences.layout_variable_fonts_enabled
@@ -366,6 +367,8 @@ pub struct Preferences {
     /// Exposes internal JS API functions that are usually restricted to `about:...` pages
     /// Useful if you want to get memory report or force GC in a test page
     pub expose_servointernals_globally: bool,
+    
+    pub kiosk_mode_enabled: bool,
 }
 
 impl Preferences {
@@ -540,6 +543,7 @@ impl Preferences {
             user_agent: String::new(),
             viewport_meta_enabled: false,
             expose_servointernals_globally: false,
+            kiosk_mode_enabled: false,
         }
     }
 

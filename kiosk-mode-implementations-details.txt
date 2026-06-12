@@ -1,0 +1,8 @@
+Author: Avi Raj Kapila
+Date: 6/12/2026
+Purpose: This file includes details and explanation for changes made to incorporate a kiosk-mode feature in servoshell via CLI
+
+Files Required to be Changed
+- ports > servoshell > prefs.rs
+- ports > servoshell > desktop > gui.rs
+- ports > servoshell > desktop > headed_window.rs

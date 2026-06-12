@@ -104,6 +104,8 @@ pub(crate) struct ServoShellPreferences {
     /// Log also to a file
     #[cfg(target_env = "ohos")]
     pub log_to_file: bool,
+
+    pub kiosk_mode: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -130,6 +132,7 @@ impl Default for ServoShellPreferences {
             #[cfg(target_env = "ohos")]
             log_to_file: false,
             experimental_preferences_enabled: false,
+            kiosk_mode: false
         }
     }
 }
@@ -427,6 +430,10 @@ struct CmdArgs {
     #[bpaf(long)]
     enable_experimental_web_platform_features: bool,
 
+    ///  Whether or not to enable kiosk_mode
+    #[bpaf(long)]
+    kiosk_mode: bool,
+
     // Exit after Servo has loaded the page and detected a stable output image.
     #[bpaf(short('x'), long)]
     exit: bool,
@@ -627,6 +634,10 @@ fn update_preferences_from_command_line_arguments(
         preferences.js_mem_gc_zeal_level = 2;
         preferences.js_mem_gc_zeal_frequency = 1;
     }
+
+    if cmd_args.kiosk_mode {
+        preferences.kiosk_mode_enabled = true;
+    }
 }
 
 /// Parse Commandline arguments
@@ -720,6 +731,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         userscripts_directory: cmd_args.userscripts,
         user_stylesheets: cmd_args.user_stylesheet,
         experimental_preferences_enabled: cmd_args.enable_experimental_web_platform_features,
+        kiosk_mode: cmd_args.kiosk_mode,
         #[cfg(target_env = "ohos")]
         log_filter: cmd_args.log_filter.or_else(|| {
             (!preferences.log_filter.is_empty()).then(|| preferences.log_filter.clone())
@@ -727,6 +739,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         #[cfg(target_env = "ohos")]
         log_to_file: cmd_args.log_to_file,
         ..Default::default()
+        
     };
 
     let Ok(debug_options) = parse_diagnostics_logging(cmd_args.debug) else {
