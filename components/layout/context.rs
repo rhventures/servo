@@ -40,6 +40,9 @@ pub(crate) struct LayoutContext<'a> {
     /// A collection of `<iframe>` sizes to send back to script.
     pub iframe_sizes: Mutex<IFrameSizes>,
 
+    /// A collection of `<UntrustedNodeAddress>` of HTMLSelectElement's to send back to the script.
+    pub pending_select_elements: Mutex<Vec<UntrustedNodeAddress>>,
+
     /// An [`ImageResolver`] used for resolving images during box and fragment
     /// tree construction. Later passed to display list construction.
     pub image_resolver: Arc<ImageResolver>,

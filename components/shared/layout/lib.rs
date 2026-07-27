@@ -627,6 +627,9 @@ pub struct ReflowResult {
     /// This is needed to support inline SVGs as the serialization needs to happen on
     /// the script thread.
     pub pending_svg_elements_for_serialization: Vec<UntrustedNodeAddress>,
+    /// The list of `HTMLSelectElement`s encountered in the DOM that require a post-layout fixup.
+    /// This is needed to make update to the element's shadow tree after layout is complete.
+    pub pending_select_elements_for_shadowtree_update: Vec<UntrustedNodeAddress>,
     /// The list of iframes in this layout and their sizes, used in order
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages. Returning None if incremental reflow

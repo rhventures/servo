@@ -56,6 +56,11 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
+use style::properties::PropertyId;
+use style::properties::NonCustomPropertyId;
+use style::properties::LonghandId;
+use crate::dom::shadowroot::ShadowRoot;
+
 
 const DEFAULT_SELECT_SIZE: u32 = 0;
 
@@ -334,14 +339,13 @@ impl HTMLSelectElement {
             .upcast::<Node>()
             .AppendChild(cx, text.upcast::<Node>())
             .unwrap();
-
         let chevron_container = Element::create(
             cx,
             QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &document,
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
+            None, 
+            &document, 
+            ElementCreator::ScriptCreated, 
+            CustomElementCreationMode::Asynchronous, 
             None,
         );
         chevron_container.set_string_attribute(
@@ -349,14 +353,34 @@ impl HTMLSelectElement {
             &local_name!("style"),
             CHEVRON_CONTAINER_STYLE.into(),
         );
-        select_box
-            .upcast::<Node>()
-            .AppendChild(cx, chevron_container.upcast::<Node>())
-            .unwrap();
 
-        root.upcast::<Node>()
-            .AppendChild(cx, select_box.upcast::<Node>())
-            .unwrap();
+        let select = DomRoot::from_ref(self);
+        self.owner_document().add_delayed_task(
+            task!(SelectPrepare: |cx, select: DomRoot<HTMLSelectElement>, chevron_container: DomRoot<Element>, select_box: DomRoot<Element>, root: DomRoot<ShadowRoot> | {
+                let node = select.htmlelement.as_element().upcast::<Node>();
+                let addr = node.to_trusted_node_address();
+                let binding = node.owner_window().resolved_style_query(addr, None, PropertyId::NonCustom(NonCustomPropertyId::from_longhand(LonghandId::Appearance)));
+                let binding = binding.str();
+                let appearance = binding.trim();
+                
+                match appearance {
+                    "none" => {},
+                    _ => {
+                        
+                        select_box
+                            .upcast::<Node>()
+                            .AppendChild(cx, chevron_container.upcast::<Node>())
+                            .unwrap();
+                    },
+                }
+                println!("Apperance value {}", appearance);
+                root.upcast::<Node>()
+                    .AppendChild(cx, select_box.upcast::<Node>())
+                    .unwrap();
+            }),
+        );
+
+        
     }
 
     fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {

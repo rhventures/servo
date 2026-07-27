@@ -15,7 +15,7 @@ use bitflags::bitflags;
 use embedder_traits::{
     EmbedderMsg, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
 };
-use euclid::{Point2D, Rect, Scale, Size2D};
+use euclid::{Point2D, Rect, Scale, Size2D, default};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
@@ -1044,9 +1044,10 @@ impl LayoutThread {
             animating_images: reflow_request.animating_images.clone(),
             animation_timeline_value: reflow_request.animation_timeline_value,
         });
+
         let mut reflow_statistics = Default::default();
 
-        let (mut reflow_phases_run, iframe_sizes) = self.restyle_and_build_trees(
+        let (mut reflow_phases_run, iframe_sizes, pending_select_elements) = self.restyle_and_build_trees(
             &mut reflow_request,
             document,
             root_element,
@@ -1084,6 +1085,7 @@ impl LayoutThread {
             pending_rasterization_images,
             pending_svg_elements_for_serialization,
             iframe_sizes: Some(iframe_sizes),
+            pending_select_elements_for_shadowtree_update: pending_select_elements,
             reflow_statistics,
         })
     }
@@ -1160,7 +1162,7 @@ impl LayoutThread {
         document: ServoDangerousStyleDocument<'_>,
         root_element: ServoLayoutElement<'_>,
         image_resolver: &Arc<ImageResolver>,
-    ) -> (ReflowPhasesRun, IFrameSizes) {
+    ) -> (ReflowPhasesRun, IFrameSizes, Vec<UntrustedNodeAddress>) {
         let mut snapshot_map = SnapshotMap::new();
         let _snapshot_setter = match reflow_request.restyle.as_mut() {
             Some(restyle) => SnapshotSetter::new(restyle, &mut snapshot_map),
@@ -1214,6 +1216,7 @@ impl LayoutThread {
             ),
             font_context: self.font_context.clone(),
             iframe_sizes: Mutex::default(),
+            pending_select_elements: Mutex::default(),
             allow_parallel_layout: rayon_pool.is_some(),
             image_resolver: image_resolver.clone(),
             painter_id: self.webview_id.into(),
@@ -1304,7 +1307,7 @@ impl LayoutThread {
 
             if !damage.contains(LayoutDamage::DescendantCollectedAsLayoutRoot) {
                 layout_context.style_context.stylist.rule_tree().maybe_gc();
-                return (ReflowPhasesRun::empty(), IFrameSizes::default());
+                return (ReflowPhasesRun::empty(), IFrameSizes::default(), Vec::<UntrustedNodeAddress>::default(),);
             }
 
             debug_assert!(!layout_roots.is_empty());
@@ -1314,7 +1317,7 @@ impl LayoutThread {
             {
                 return (
                     ReflowPhasesRun::RanLayout,
-                    std::mem::take(&mut *layout_context.iframe_sizes.lock()),
+                    std::mem::take(&mut *layout_context.iframe_sizes.lock()),Vec::<UntrustedNodeAddress>::default(),
                 );
             }
 
@@ -1362,9 +1365,11 @@ impl LayoutThread {
         layout_context.style_context.stylist.rule_tree().maybe_gc();
 
         let mut iframe_sizes = layout_context.iframe_sizes.lock();
+        let mut pending_select_elements = layout_context.pending_select_elements.lock();
         (
             ReflowPhasesRun::RanLayout,
             std::mem::take(&mut *iframe_sizes),
+            std::mem::take(&mut *pending_select_elements),
         )
     }
 

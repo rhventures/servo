@@ -154,6 +154,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::history::History;
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::location::Location;
@@ -2658,6 +2659,8 @@ impl Window {
             reflow_result.pending_svg_elements_for_serialization,
         );
 
+        self.handle_pending_select_elements_post_reflow(cx, reflow_result.pending_select_elements_for_shadowtree_update);
+
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
             document
                 .iframes_mut()
@@ -3605,6 +3608,20 @@ impl Window {
             let node = unsafe { from_untrusted_node_address(node) };
             let svg = node.downcast::<SVGSVGElement>().unwrap();
             svg.serialize_and_cache_subtree(cx);
+            node.dirty(NodeDamage::Other);
+        }
+    }
+
+    #[expect(unsafe_code)]
+    fn handle_pending_select_elements_post_reflow(
+        &self,
+        cx: &mut JSContext,
+        pending_select_elements_for_shadowtree_update: Vec<UntrustedNodeAddress>,
+    ) {
+        for node in pending_select_elements_for_shadowtree_update.into_iter() {
+            let node = unsafe { from_untrusted_node_address(node) };
+            let select_element = node.downcast::<HTMLSelectElement>().unwrap();
+            select_element.update_shadow_tree(cx);
             node.dirty(NodeDamage::Other);
         }
     }

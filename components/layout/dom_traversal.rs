@@ -139,6 +139,8 @@ fn traverse_element<'dom>(
     let style = element.style(&context.style_context);
     let info = NodeAndStyleInfo::new(element, style);
 
+    //println!("Testing value of style {:?}", style.clone());
+
     match Display::from(info.style.get_box().display) {
         Display::None => {},
         Display::Contents => {
