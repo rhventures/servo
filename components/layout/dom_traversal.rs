@@ -139,7 +139,14 @@ fn traverse_element<'dom>(
     let style = element.style(&context.style_context);
     let info = NodeAndStyleInfo::new(element, style);
 
-    //println!("Testing value of style {:?}", style.clone());
+    //println!("Testing value of style {:?}", element.as_html_element().unwrap().type_id().unwrap());
+    println!("Testing value of element {}", element.as_html_element().expect("Need the specific HTML Element").local_name());
+    if element.as_html_element().expect("Need the specific HTML Element").local_name() == "select" {
+        context.pending_select_elements
+            .lock()
+            .push(element.opaque().into());
+    }
+    println!("{}", context.pending_select_elements.lock().len());
 
     match Display::from(info.style.get_box().display) {
         Display::None => {},

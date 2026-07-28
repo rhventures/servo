@@ -42,7 +42,7 @@ impl fmt::Debug for LayoutDom<'_, Element> {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ServoLayoutElement<'dom> {
     /// The wrapped private DOM Element.
-    pub(super) element: LayoutDom<'dom, Element>,
+    pub element: LayoutDom<'dom, Element>,
     /// The possibly nested [`PseudoElementChain`] for this element.
     pub(super) pseudo_element_chain: PseudoElementChain,
 }

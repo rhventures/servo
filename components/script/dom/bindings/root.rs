@@ -48,7 +48,7 @@ use crate::dom::node::Node;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 #[repr(transparent)]
 pub struct LayoutDom<'dom, T> {
-    value: &'dom T,
+    pub value: &'dom T,
 }
 
 impl LayoutDom<'_, Node> {
